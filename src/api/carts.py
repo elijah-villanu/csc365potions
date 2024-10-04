@@ -5,8 +5,6 @@ from enum import Enum
 import sqlalchemy
 from src import database as db
 
-# with db.engine.begin() as connection:
-#     result = connection.execute(sqlalchemy.text(sql_to_execute))
 
 
 router = APIRouter(
@@ -111,5 +109,13 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-
+#hard code supabase -1 potions and add 50 gold
+    with db.engine.begin() as connection:
+        result_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        current_stock = int(result_stock.fetchone()[0]) - 1
+        result_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        current_gold = int(result_gold.fetchone()[0]) + 50
+    
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{current_stock}', gold = '{current_gold}' WHERE id = 1"))
     return {"total_potions_bought": 1, "total_gold_paid": 50}
+

@@ -5,8 +5,8 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 
-# with db.engine.begin() as connection:
-#     result = connection.execute(sqlalchemy.text(sql_to_execute))
+
+    
 
 
 router = APIRouter(
@@ -31,17 +31,29 @@ def get_bottle_plan():
     """
     Go from barrel to bottle.
     """
-
     # Each bottle has a quantity of what proportion of red, blue, and
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
+    
 
-    # Initial logic: bottle all barrels into red potions.
+    # Initial logic: bottle all barrels into green potions.
+    with db.engine.begin() as connection:
+        ml_result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+        quantity_ml = int(ml_result.fetchone()[0])
+        stock_result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        potion_stock = int(stock_result.fetchone()[0])
+
+    #Checks if there is enough in barrel, then bottles it
+        while quantity_ml >= 100:
+            potion_stock += 1
+            quantity_ml = quantity_ml - 100
+        
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{potion_stock}', num_green_ml = '{quantity_ml}' WHERE id = 1"))    
 
     return [
             {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": 5,
+                "potion_type": [0, 100, 0, 0],
+                "quantity": quantity_ml,
             }
         ]
 
