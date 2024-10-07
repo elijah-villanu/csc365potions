@@ -1,4 +1,5 @@
 .vercel
+.venv
 venv
 .idea
 __pycache__

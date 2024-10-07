@@ -32,28 +32,50 @@ def get_bottle_plan():
     Go from barrel to bottle.
     """
     # Each bottle has a quantity of what proportion of red, blue, and
-    # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
     
 
+    #Need to bottle any available red, green, blue
+
     # Initial logic: bottle all barrels into green potions.
     with db.engine.begin() as connection:
-        ml_result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
-        quantity_ml = int(ml_result.fetchone()[0])
-        stock_result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-        potion_stock = int(stock_result.fetchone()[0])
+        r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
+        r_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
+        g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+        g_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
+        b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
+        b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
+        
 
     #Checks if there is enough in barrel, then bottles it
-        while quantity_ml >= 100:
-            potion_stock += 1
-            quantity_ml = quantity_ml - 100
-        
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{potion_stock}', num_green_ml = '{quantity_ml}' WHERE id = 1"))    
+        while r_ml >= 100:
+            r_stock += 1
+            r_ml = r_ml - 100
 
+        while g_ml >= 100:
+            g_stock += 1
+            g_ml = g_ml - 100
+        
+        while b_ml >= 100:
+            b_stock += 1
+            b_ml = b_ml - 100
+
+        
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = '{r_stock}', num_red_ml = '{r_ml}' WHERE id = 1"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{g_stock}', num_green_ml = '{g_ml}' WHERE id = 1"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = '{b_stock}', num_blue_ml = '{b_ml}' WHERE id = 1"))            
     return [
             {
+                "potion_type": [100, 0, 0, 0],
+                "quantity": r_ml,
+            },
+            {
                 "potion_type": [0, 100, 0, 0],
-                "quantity": quantity_ml,
+                "quantity": g_ml,
+            },
+            {
+                "potion_type": [0, 0, 100, 0],
+                "quantity": b_ml
             }
         ]
 
