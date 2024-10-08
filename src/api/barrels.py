@@ -37,7 +37,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
             cost = barrel.price
 
             if "RED" in barrel.sku:
-                r_ml += ml_bought
+                r_ml = r_ml + ml_bought
                 gold = gold - cost
             elif "GREEN" in barrel.sku:
                 g_ml = g_ml + ml_bought
@@ -74,35 +74,14 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     
     for barrel in wholesale_catalog:
         if barrel.sku == "SMALL_RED_BARREL":
-            if red_stock < 1 and gold > barrel.price:
-                barrel_plan.append(
-                {
-                    "sku": barrel.sku,
-                    "quantity": barrel.quantity,
-                    "ml_per_barrel": barrel.ml_per_barrel,
-                    "potion_type": barrel.potion_type,
-                    "price": barrel.price
-                })
+            if red_stock < 20 and gold > barrel.price:
+                barrel_plan.append(barrel)
         if barrel.sku == "SMALL_GREEN_BARREL":
             if green_stock < 1 and gold > barrel.price:
-                barrel_plan.append(
-                {
-                    "sku": barrel.sku,
-                    "quantity": barrel.quantity,
-                    "ml_per_barrel": barrel.ml_per_barrel,
-                    "potion_type": barrel.potion_type,
-                    "price": barrel.price
-                })
+                barrel_plan.append(barrel)
         if barrel.sku == "SMALL_BLUE_BARREL":
             if blue_stock < 1 and gold > barrel.price:
-                barrel_plan.append(
-                {
-                    "sku": barrel.sku,
-                    "quantity": barrel.quantity,
-                    "ml_per_barrel": barrel.ml_per_barrel,
-                    "potion_type": barrel.potion_type,
-                    "price": barrel.price
-                })                
-
+                barrel_plan.append(barrel)   
+                
     return[barrel_plan]
 
