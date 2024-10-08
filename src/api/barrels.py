@@ -60,7 +60,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
-    print(wholesale_catalog)
+    # print(wholesale_catalog)
     
 
     with db.engine.begin() as connection:
@@ -70,31 +70,39 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
           
-    barrel_plan =[]
-
+    barrel_plan = []
     
     for barrel in wholesale_catalog:
         if barrel.sku == "SMALL_RED_BARREL":
             if red_stock < 1 and gold > barrel.price:
                 barrel_plan.append(
                 {
-                    "sku": "SMALL_RED_BARREL",
-                    "quantity": 1,
+                    "sku": barrel.sku,
+                    "quantity": barrel.quantity,
+                    "ml_per_barrel": barrel.ml_per_barrel,
+                    "potion_type": barrel.potion_type,
+                    "price": barrel.price
                 })
         if barrel.sku == "SMALL_GREEN_BARREL":
             if green_stock < 1 and gold > barrel.price:
                 barrel_plan.append(
                 {
-                    "sku": "SMALL_GREEN_BARREL",
-                    "quantity": 1,
+                    "sku": barrel.sku,
+                    "quantity": barrel.quantity,
+                    "ml_per_barrel": barrel.ml_per_barrel,
+                    "potion_type": barrel.potion_type,
+                    "price": barrel.price
                 })
         if barrel.sku == "SMALL_BLUE_BARREL":
             if blue_stock < 1 and gold > barrel.price:
                 barrel_plan.append(
                 {
-                    "sku": "SMALL_BLUE_BARREL",
-                    "quantity": 1,
+                    "sku": barrel.sku,
+                    "quantity": barrel.quantity,
+                    "ml_per_barrel": barrel.ml_per_barrel,
+                    "potion_type": barrel.potion_type,
+                    "price": barrel.price
                 })                
-            
+
     return[barrel_plan]
 

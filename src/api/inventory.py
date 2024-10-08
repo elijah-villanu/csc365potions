@@ -40,4 +40,7 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     capacity unit costs 1000 gold.
     """
 
+
+    #Have all gold and potion updates be done in the audit
+
     return "OK"
