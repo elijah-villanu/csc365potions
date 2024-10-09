@@ -83,5 +83,5 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if blue_stock < 4 and gold > barrel.price:
                 barrel_plan.append(barrel)   
                 
-    return[barrel_plan]
+    return barrel_plan
 
