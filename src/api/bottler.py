@@ -46,7 +46,7 @@ def get_bottle_plan():
         b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
         b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
         
-        r_made, g_made, b_made = 0
+        r_made, g_made, b_made = 0, 0 ,0
     #Checks if there is enough in barrel, then bottles it
     #Use modulus floor
         while r_ml >= 100:
