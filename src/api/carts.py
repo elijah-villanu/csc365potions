@@ -89,6 +89,7 @@ def post_visits(visit_id: int, customers: list[Customer]):
 @router.post("/")
 def create_cart(new_cart: Customer):
     """ """
+    # Insert new row each cart id and append by one for the id (sequential id)
     return {"cart_id": 1}
 
 
