@@ -90,7 +90,10 @@ def post_visits(visit_id: int, customers: list[Customer]):
 def create_cart(new_cart: Customer):
     """ """
     # Insert new row each cart id and append by one for the id (sequential id)
-    return {"cart_id": 1}
+    with db.engine.begin() as connection:
+        new_id = connection.execute(sqlalchemy.text("SELECT MAX(id) FROM carts")).scalar() + 1
+        connection.execute(sqlalchemy.text(f"INSERT INTO carts (id) VALUES ({new_id})"))    
+    return {"cart_id": new_id}
 
 
 class CartItem(BaseModel):
@@ -110,13 +113,18 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-#hard code supabase -1 potions and add 50 gold
     with db.engine.begin() as connection:
-        result_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-        current_stock = int(result_stock.fetchone()[0]) - 1
-        result_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        current_gold = int(result_gold.fetchone()[0]) + 50
+        # using cart_id grab their row and look through each column to decide what to buy
+        cart = connection.execute(sqlalchemy.text(f"SELECT * FROM carts WHERE id = {cart_id}")).fetchall()
+        
+        
+        # Need to do all updates with parameter binding
+
+        # r_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar() - 1
+        # g_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar() - 1
+        # b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar() -1
+        # result_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar() + 50
     
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{current_stock}', gold = '{current_gold}' WHERE id = 1"))
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+        # connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{current_stock}', gold = '{current_gold}' WHERE id = 1"))
+    return {"total_potions_bought": cart[1], "total_gold_paid": cart_checkout}
 

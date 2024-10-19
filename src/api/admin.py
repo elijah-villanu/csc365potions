@@ -22,6 +22,7 @@ def reset():
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = '100' WHERE id = 1"))    
         for color in columns:
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_{color}_potions = '0', num_{color}_ml = '0' WHERE id = 1"))
+        connection.execute(sqlalchemy.text("DELETE FROM carts WHERE id != 0"))
     
 
     return "OK"
