@@ -92,8 +92,8 @@ def create_cart(new_cart: Customer):
     # Insert new row each cart id and append by one for the id (sequential id)
     with db.engine.begin() as connection:
         new_id = connection.execute(sqlalchemy.text("SELECT MAX(id) FROM carts")).scalar() + 1
-        connection.execute(sqlalchemy.text(f"INSERT INTO carts (id) VALUES ({new_id})"))    
-    return {"cart_id": new_id}
+        connection.execute(sqlalchemy.text(f"INSERT INTO carts (id, name, class) values ({new_id},  '{new_cart.customer_name}', '{new_cart.character_class}')"))
+    return {"cart_id": new_id} 
 
 
 class CartItem(BaseModel):
@@ -103,7 +103,11 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
+    quantity = cart_item.quantity
 
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, item_sku, quantity) VALUES ({cart_id},'{item_sku}','{quantity}')"))
+        
     return "OK"
 
 
@@ -115,7 +119,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     with db.engine.begin() as connection:
         # using cart_id grab their row and look through each column to decide what to buy
-        cart = connection.execute(sqlalchemy.text(f"SELECT * FROM carts WHERE id = {cart_id}")).fetchall()
+        quantity = connection.execute(sqlalchemy.text(f"SELECT SUM(quantity) FROM cart_items WHERE cart_id = '{cart_id}'")).scalar()
+        return_payment = int(cart_checkout.payment)
         
         
         # Need to do all updates with parameter binding
@@ -126,5 +131,5 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         # result_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar() + 50
     
         # connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{current_stock}', gold = '{current_gold}' WHERE id = 1"))
-    return {"total_potions_bought": cart[1], "total_gold_paid": cart_checkout}
+    return {"total_potions_bought": quantity, "total_gold_paid": return_payment}
 
