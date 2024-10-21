@@ -25,21 +25,21 @@ def get_catalog():
     # return catalog
     return [
             {
-                "sku": "GREEN_POTION_0",
+                "sku": "GREEN_POTION",
                 "name": "green potion",
                 "quantity": green_stock,
                 "price": 10,
                 "potion_type": [0, 100, 0, 0],
             },
             {
-                "sku": "RED_POTION_0",
+                "sku": "RED_POTION",
                 "name": "red potion",
                 "quantity": red_stock,
                 "price": 10,
                 "potion_type": [100, 0, 0, 0],
             },
             {
-                "sku": "BLUE_POTION_0",
+                "sku": "BLUE_POTION",
                 "name": "blue potion",
                 "quantity": blue_stock,
                 "price": 10,
