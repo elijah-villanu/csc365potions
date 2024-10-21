@@ -11,12 +11,18 @@ def get_catalog():
     """
     Each unique item combination must have only a single price.
     """
+
+    catalog = []
     with db.engine.begin() as connection:
+    #     potions = connection.execute(sqlalchemy.text("SELECT * FROM POTIONS")).fetchall()
+    #     for row in potions:
+    #         connection.execute(sqlalchemy.text(""))
+
         green_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
         red_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
         blue_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
         
-
+    # return catalog
     return [
             {
                 "sku": "GREEN_POTION_0",
