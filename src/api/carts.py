@@ -106,7 +106,11 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     quantity = cart_item.quantity
 
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, item_sku, quantity) VALUES ({cart_id},'{item_sku}','{quantity}')"))
+        price = connection.execute(sqlalchemy.text(f"SELECT price FROM potions WHERE potion_sku = '{item_sku}'")).scalar()
+        total = price * quantity
+        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, item_sku, quantity, price) VALUES ({cart_id},'{item_sku}','{quantity}','{total}')"))
+
+        # MERGE WITH POTIONS VIA POTION_SKU TABLE TO MULT QUANT AND PRICE FOR TOTAL THEN IN CHECKOUT SUM PRICES
         
     return "OK"
 
@@ -120,7 +124,10 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     with db.engine.begin() as connection:
         # using cart_id grab their row and look through each column to decide what to buy
         quantity = connection.execute(sqlalchemy.text(f"SELECT SUM(quantity) FROM cart_items WHERE cart_id = '{cart_id}'")).scalar()
-        return_payment = int(cart_checkout.payment)
+        total_cost = connection.execute(sqlalchemy.text(f"SELECT SUM(price) FROM cart_items WHERE cart_id = '{cart_id}'")).scalar()
+        connection.execute(sqlalchemy.text(f"UPDATE cart_items SET customer_payment = '{cart_checkout.payment}' WHERE cart_id = {cart_id}"))
+        
+
         
         
         # Need to do all updates with parameter binding
@@ -131,5 +138,5 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         # result_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar() + 50
     
         # connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{current_stock}', gold = '{current_gold}' WHERE id = 1"))
-    return {"total_potions_bought": quantity, "total_gold_paid": return_payment}
+    return {"total_potions_bought": quantity, "total_gold_paid": total_cost}
 
