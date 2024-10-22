@@ -18,17 +18,14 @@ def get_inventory():
     potions, ml, and gold. 
     """
     with db.engine.begin() as connection:
-        r_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
-        g_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-        b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
-
+        stock_total = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potions")).scalar()
+        
         r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
         g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
         b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
 
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
 
-        stock_total = r_stock + g_stock + b_stock
         ml_total = r_ml + g_ml +b_ml
         
     return {"number_of_potions": stock_total, "ml_in_barrels": ml_total, "gold": gold}
@@ -57,8 +54,5 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     Start with 1 capacity for 50 potions and 1 capacity for 10000 ml of potion. Each additional 
     capacity unit costs 1000 gold.
     """
-    
-
-    #Have all gold and potion updates be done in the audit
 
     return "OK"

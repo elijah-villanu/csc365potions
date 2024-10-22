@@ -107,7 +107,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 
     with db.engine.begin() as connection:
         price = connection.execute(sqlalchemy.text(f"SELECT price FROM potions WHERE potion_sku = '{item_sku}'")).scalar()
-        
+
         total = price * quantity
         connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, item_sku, quantity, price) VALUES ({cart_id},'{item_sku}','{quantity}','{total}')"))
 
@@ -132,12 +132,5 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         
         
         # Need to do all updates with parameter binding
-
-        # r_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar() - 1
-        # g_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar() - 1
-        # b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar() -1
-        # result_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar() + 50
-    
-        # connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{current_stock}', gold = '{current_gold}' WHERE id = 1"))
     return {"total_potions_bought": quantity, "total_gold_paid": total_cost}
 

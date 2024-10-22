@@ -14,35 +14,15 @@ def get_catalog():
 
     catalog = []
     with db.engine.begin() as connection:
-    #     potions = connection.execute(sqlalchemy.text("SELECT * FROM POTIONS")).fetchall()
-    #     for row in potions:
-    #         connection.execute(sqlalchemy.text(""))
+        potions = connection.execute(sqlalchemy.text("SELECT * FROM POTIONS")).fetchall()
+        for row in potions:
+            type = [row[5],row[6],row[7],row[8]]
+            catalog.append({
+                "sku": row[1],
+                "name": row[2],
+                "quantity": row[3],
+                "price": row[4],
+                "potion_type": type,
+            })
 
-        green_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-        red_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
-        blue_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
-        
-    # return catalog
-    return [
-            {
-                "sku": "GREEN_POTION",
-                "name": "green potion",
-                "quantity": green_stock,
-                "price": 10,
-                "potion_type": [0, 100, 0, 0],
-            },
-            {
-                "sku": "RED_POTION",
-                "name": "red potion",
-                "quantity": red_stock,
-                "price": 10,
-                "potion_type": [100, 0, 0, 0],
-            },
-            {
-                "sku": "BLUE_POTION",
-                "name": "blue potion",
-                "quantity": blue_stock,
-                "price": 10,
-                "potion_type": [0, 0, 100, 0],
-            }
-        ]
+    return catalog

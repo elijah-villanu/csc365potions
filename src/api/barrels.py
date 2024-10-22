@@ -74,7 +74,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     
     for barrel in wholesale_catalog:
         if "RED" in barrel.sku:
-            if red_stock < 2 and gold > barrel.price:
+            if red_stock < 4 and gold > barrel.price:
                 gold -= barrel.price
                 barrel_plan.append(
                 {
@@ -82,7 +82,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     "quantity": barrel.quantity
                 })
         if "GREEN" in barrel.sku:
-            if green_stock < 2 and gold > barrel.price:
+            if green_stock < 4 and gold > barrel.price:
                 gold -= barrel.price
                 barrel_plan.append(
                 {
@@ -90,13 +90,15 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     "quantity": barrel.quantity
                 })
         if "BLUE" in barrel.sku:
-            if blue_stock < 2 and gold > barrel.price:
+            if blue_stock < 4 and gold > barrel.price:
                 gold -= barrel.price
                 barrel_plan.append(
                 {
                     "sku": barrel.sku,
                     "quantity": barrel.quantity
-                })   
+                })
+        # if "DARK" in barrel.sku:
+        #     if   
                 
     return barrel_plan
 

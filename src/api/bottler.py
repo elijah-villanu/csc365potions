@@ -22,6 +22,7 @@ class PotionInventory(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
     """ """
+
     print(f"potions delievered: {potions_delivered} order_id: {order_id}")
 
     return "OK"
@@ -35,9 +36,14 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
     
 
-    #Need to bottle any available red, green, blue
-
     with db.engine.begin() as connection:
+
+        bottle_plan = []
+
+        # ml = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory WHERE id = 1"))
+        # for row in ml:
+
+
         r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
         r_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
         g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
@@ -45,7 +51,7 @@ def get_bottle_plan():
         b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
         b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
         
-        r_made, g_made, b_made = 0, 0, 0
+        r_made, g_made, b_made, d_made, v_made, b_made = 0, 0, 0, 0, 0, 0
     #Checks if there is enough in barrel, then bottles it
     #Use modulus floor
         while r_ml >= 100:
