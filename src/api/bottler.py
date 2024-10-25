@@ -54,23 +54,24 @@ def get_bottle_plan():
         
         for key_ml in ml:
             value = ml[key_ml]
+            print(f"{key_ml} {value}")
             made = 0
             potion_type = [0,0,0,0]
             made_any = False
             while value >= 100:
-                if "red" in key_ml and potions["red potion"] < 0:
+                if "red" in key_ml:
                     made += 1
                     value -=100
                     potions["red potion"] += 1
                     potion_type = [100,0,0,0]
                     made_any = True
-                if "green" in key_ml and potions["green potion"] < 0:
+                if "green" in key_ml:
                     made += 1
                     value -=100
                     potion_type = [0,100,0,0]
                     potions["green potion"] += 1
                     made_any = True
-                if "blue" in key_ml and potions["blue potion"] < 0:
+                if "blue" in key_ml:
                     made += 1
                     value -=100   
                     potion_type = [0,0,100,0]
