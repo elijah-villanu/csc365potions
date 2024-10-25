@@ -24,11 +24,11 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     """ 
     Runs after the wholesale_plan is run and made, adds ml and subtracts gold from plan
     """
+
     with db.engine.begin() as connection:
- 
-        r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
-        g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
+        
+        ml_table = connection.execute(sqlalchemy.text("SELECT type, ml FROM barrels"))
+        ml = {row.type: row.ml for row in ml_table}
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
 
         #run through barrel array and identify by potion type
@@ -37,20 +37,31 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
             cost = barrel.price
 
             if "RED" in barrel.sku:
-                r_ml = r_ml + ml_bought
+                ml["red"] = ml["red"] + ml_bought
                 gold = gold - cost
             elif "GREEN" in barrel.sku:
-                g_ml = g_ml + ml_bought
+                ml["green"] = ml["green"] + ml_bought
                 gold = gold - cost
             elif "BLUE" in barrel.sku:
-                b_ml = b_ml + ml_bought
+                ml["blue"] = ml["blue"] + ml_bought
+                gold = gold - cost
+            elif "DARK" in barrel.sku:
+                ml["dark"] = ml["dark"] + ml_bought
                 gold = gold - cost
 
         #NOW UPDATE NEW VALUES
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = '{r_ml}', gold = '{gold}' WHERE id = 1"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = '{g_ml}' WHERE id = 1"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = '{b_ml}' WHERE id = 1"))
-
+        query = f"""
+                UPDATE barrels
+                SET ml = CASE
+                    WHEN id = 1 THEN {ml["red"]}
+                    WHEN id = 2 THEN {ml["green"]}
+                    WHEN id = 3 THEN {ml["blue"]}
+                    WHEN id = 4 THEN {ml["dark"]}
+                    END
+                WHERE id > 0
+                """
+        connection.execute(sqlalchemy.text(query))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = '{gold}'"))
         
     print(f"barrels delievered: {barrels_delivered} order_id: {order_id}")
 

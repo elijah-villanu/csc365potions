@@ -19,14 +19,9 @@ def get_inventory():
     """
     with db.engine.begin() as connection:
         stock_total = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potions")).scalar()
-        
-        r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
-        g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
-
+        ml_total = connection.execute(sqlalchemy.text("SELECT SUM(ml) FROM barrels")).scalar()
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-
-        ml_total = r_ml + g_ml +b_ml
+    print(f"number_of_potions: {stock_total} ml_in_barrels: {ml_total}, gold: {gold}")
         
     return {"number_of_potions": stock_total, "ml_in_barrels": ml_total, "gold": gold}
 
