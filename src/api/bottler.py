@@ -38,20 +38,60 @@ def get_bottle_plan():
 
     with db.engine.begin() as connection:
 
-        bottle_plan = []
+        # bottle_plan = []
+        # bottles_made = {
+        #     "red":0,
+        #     "green":0,
+        #     "blue":0,
+        #     "dark":0,
+        #     "brown":0,
+        #     "violet":0
+        # }
+        # potions_table = connection.execute(sqlalchemy.text("SELECT potion_sku, quantity FROM potions"))
+        # potions = {row.potion_sku: row.quantity for row in potions_table}
+        # print(potions)
+        # ml_table = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory"))
+        # ml = dict([row._asdict() for row in ml_table])
+        # print(type(ml))
+        # for key in ml:
+        #     print(key)
+            # value = ml[type]
+            # made = 0
+            # while value >= 100:
+            #     if "red" in type and potions["red"] > 0:
+            #         made += 1
+            #         value -=100
+            # bottle_plan.append({
+            #     "potion_type": [100, 0, 0, 0],
+            #     "quantity": made
+            # })
 
-        # ml = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory WHERE id = 1"))
-        # for row in ml:
+        # print(bottle_plan)
+        # return bottle_plan     
 
 
-        r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
-        r_stock = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
-        g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        g_stock = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-        b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
-        b_stock = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
+
+
+
         
-        r_made, g_made, b_made, d_made, v_made, b_made = 0, 0, 0, 0, 0, 0
+        
+    #     ml_inventory = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory"))
+    #     for ml in ml_inventory:
+            
+
+                 
+        r_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
+        r_stock = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE id = 1")).scalar()
+        g_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+        g_stock = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE id = 2")).scalar()
+        b_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
+        b_stock = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE id = 3")).scalar()
+
+
+
+        
+        
+        r_made, g_made, b_made = 0, 0, 0
     #Checks if there is enough in barrel, then bottles it
     #Use modulus floor
         while r_ml >= 100:
@@ -70,9 +110,22 @@ def get_bottle_plan():
             b_ml = b_ml - 100
 
         #When updating potion quantity, make sure adding, not overiding
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = '{r_stock}', num_red_ml = '{r_ml}' WHERE id = 1"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = '{g_stock}', num_green_ml = '{g_ml}' WHERE id = 1"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = '{b_stock}', num_blue_ml = '{b_ml}' WHERE id = 1"))            
+        potion_query = f"""
+                UPDATE potions
+                SET quantity = CASE
+                    WHEN id = 1 THEN {r_stock}
+                    WHEN id = 2 THEN {g_stock}
+                    WHEN id = 3 THEN {b_stock}
+                    ELSE quantity
+                END
+                WHERE id IN (1,2,3)
+                """
+        connection.execute(sqlalchemy.text(potion_query))
+
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = '{r_ml}' WHERE id = 1"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = '{g_ml}' WHERE id = 1"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = '{b_ml}' WHERE id = 1"))    
+        # print (bottle_plan)        
     return [
             {
                 "potion_type": [100, 0, 0, 0],
