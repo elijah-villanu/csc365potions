@@ -16,20 +16,30 @@ def reset():
     Reset the game state. Gold goes to 100, all potions are removed from
     inventory, and all barrels are removed from inventory. Carts are all reset.
     """
-    query = """
+
+    # Potential query, normal join barrels table and potions and clear quant?
+    
+    truncate_query = """
             TRUNCATE TABLE
             carts,
             cart_items,
             visitors,
             global_inventory
             """
+    ml_query = """
+            UPDATE barrels SET quantity = 0
+            """
+    potion_query = """
+                UPDATE potions SET quantity = 0
+                """
+    gold_query ="""
+            UPDATE global_inventory SET gold = 100
+            """
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(query))
-        connection.execute(sqlalchemy.text("""
-                                           INSERT INTO global_inventory (num_green_ml, num_red_ml, num_blue_ml, gold) 
-                                           VALUES (0,0,0,100)
-                                           """))
-        connection.execute(sqlalchemy.text("UPDATE potions SET quantity = 0"))
+        connection.execute(sqlalchemy.text(truncate_query))
+        connection.execute(sqlalchemy.text(ml_query))
+        connection.execute(sqlalchemy.text(potion_query))
+        connection.execute(sqlalchemy.text(gold_query))
         
         
     
