@@ -79,6 +79,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         red_stock = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE id = 1")).scalar()
         blue_stock = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE id = 3")).scalar()
 
+        # change logic to base off ml instead of potions
+
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
           
     barrel_plan = []
