@@ -22,6 +22,17 @@ class PotionInventory(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
     """ """
+    potion_query = f"""
+                    UPDATE potions
+                    SET quantity = CASE
+                        WHEN id = 1 THEN {potions["red potion"]}
+                        WHEN id = 2 THEN {potions["green potion"]}
+                        WHEN id = 3 THEN {potions["blue potion"]}
+                        ELSE quantity
+                    END
+                    WHERE id IN (1,2,3)
+                    """
+    connection.execute(sqlalchemy.text(potion_query))
 
     print(f"potions delievered: {potions_delivered} order_id: {order_id}")
 
@@ -39,63 +50,20 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
 
         bottle_plan = []
-        bottles_made = {
-            "red":0,
-            "green":0,
-            "blue":0,
-            "dark":0,
-            "brown":0,
-            "violet":0
-        }
-        potions_table = connection.execute(sqlalchemy.text("SELECT name, quantity FROM potions"))
+        potions_table = connection.execute(sqlalchemy.text("SELECT name, quantity,red_ml,blue_ml, green_ml, dark_ml FROM potions"))
+        #iterate over potions
         potions = {row.name: row.quantity for row in potions_table}
         ml_table = connection.execute(sqlalchemy.text("SELECT type, ml FROM barrels"))
         ml = {row.type: row.ml for row in ml_table}
-        
-        for key_ml in ml:
-            value = ml[key_ml]
-            print(f"{key_ml} {value}")
-            made = 0
-            potion_type = [0,0,0,0]
-            made_any = False
-            while value >= 100:
-                if "red" in key_ml:
-                    made += 1
-                    value -=100
-                    potions["red potion"] += 1
-                    potion_type = [100,0,0,0]
-                    made_any = True
-                if "green" in key_ml:
-                    made += 1
-                    value -=100
-                    potion_type = [0,100,0,0]
-                    potions["green potion"] += 1
-                    made_any = True
-                if "blue" in key_ml:
-                    made += 1
-                    value -=100   
-                    potion_type = [0,0,100,0]
-                    potions["blue potion"] += 1
-                    made_any = True
-                else:
-                    break
-            
-            if made_any:
+
+        for potion in potions_table:
+            if red_ml =< ml["red"] and blue_ml <= ml["blue"] and green_ml <= ml["green"] and dark_ml <= ml["dark"]:
                 bottle_plan.append({
-                    "potion_type": potion_type,
-                    "quantity": made
+                    "potion_type": [red_ml,blue_ml,green_ml,dark_ml]
+                    "quantity": 1
                 })
-        potion_query = f"""
-                    UPDATE potions
-                    SET quantity = CASE
-                        WHEN id = 1 THEN {potions["red potion"]}
-                        WHEN id = 2 THEN {potions["green potion"]}
-                        WHEN id = 3 THEN {potions["blue potion"]}
-                        ELSE quantity
-                    END
-                    WHERE id IN (1,2,3)
-                    """
-        connection.execute(sqlalchemy.text(potion_query))
+                
+        
 
 
     print(bottle_plan)
