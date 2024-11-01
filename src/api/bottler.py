@@ -21,19 +21,34 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
-    """ """
+    """
+    Runs after bottler plan and uses list of PotionInventory made by the bottler plan
+    """
+    
     potion_query = f"""
                     UPDATE potions
                     SET quantity = CASE
-                        WHEN id = 1 THEN {potions["red potion"]}
-                        WHEN id = 2 THEN {potions["green potion"]}
-                        WHEN id = 3 THEN {potions["blue potion"]}
-                        ELSE quantity
-                    END
-                    WHERE id IN (1,2,3)
                     """
-    connection.execute(sqlalchemy.text(potion_query))
+    potions_table_query = """
+                    SELECT * 
+                    FROM potions
+                    """
+    with db.engine.begin() as conn:
+        potions_table = conn.execute(sqlalchemy.text(potions_table_query))
+        quantity = {row.type:row.quantity for row in potions_table}
 
+        
+        for potion in potions_delivered:
+            type_string = str(potion.potion_type)
+            quantity[type_string] += potion.quantity
+        print(f"Current Quantity: {quantity}")
+        
+        for potion in quantity:
+            potion_to_add = f"WHEN type = '{potion}' THEN {quantity[potion]} "
+            potion_query += potion_to_add #String concat 
+        potion_query += "end"
+        conn.execute(sqlalchemy.text(potion_query))    
+            
     print(f"potions delievered: {potions_delivered} order_id: {order_id}")
 
     return "OK"
@@ -50,23 +65,24 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
 
         bottle_plan = []
-        potions_table = connection.execute(sqlalchemy.text("SELECT name, quantity,red_ml,blue_ml, green_ml, dark_ml FROM potions"))
-        #iterate over potions
-        potions = {row.name: row.quantity for row in potions_table}
+        potion_query = """
+                        SELECT name, quantity,red_ml,blue_ml, green_ml, dark_ml
+                        FROM potions
+                       """
+        potions_table = connection.execute(sqlalchemy.text(potion_query))
+        
         ml_table = connection.execute(sqlalchemy.text("SELECT type, ml FROM barrels"))
         ml = {row.type: row.ml for row in ml_table}
 
         for potion in potions_table:
-            if red_ml =< ml["red"] and blue_ml <= ml["blue"] and green_ml <= ml["green"] and dark_ml <= ml["dark"]:
+            if potion.red_ml <= ml["red"] and potion.blue_ml <= ml["blue"] and potion.green_ml <= ml["green"] and potion.dark_ml <= ml["dark"]:
                 bottle_plan.append({
-                    "potion_type": [red_ml,blue_ml,green_ml,dark_ml]
+                    "potion_type": [potion.red_ml,potion.blue_ml,potion.green_ml,potion.dark_ml],
                     "quantity": 1
                 })
-                
-        
 
 
-    print(bottle_plan)
+    print(f"Bottle plan:{bottle_plan}")
     return bottle_plan             
 
 if __name__ == "__main__":
