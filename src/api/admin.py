@@ -27,7 +27,7 @@ def reset():
             global_inventory
             """
     ml_query = """
-            UPDATE barrels SET quantity = 0
+            UPDATE barrels SET ml = 0
             """
     potion_query = """
                 UPDATE potions SET quantity = 0
