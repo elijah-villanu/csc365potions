@@ -33,7 +33,7 @@ def reset():
                 UPDATE potions SET quantity = 0
                 """
     gold_query ="""
-            UPDATE global_inventory SET gold = 100
+            INSERT INTO global_inventory (gold,id) VALUES (100,1)
             """
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text(truncate_query))

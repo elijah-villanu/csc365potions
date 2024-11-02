@@ -41,6 +41,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         for potion in potions_delivered:
             type_string = str(potion.potion_type)
             quantity[type_string] += potion.quantity
+            
         print(f"Current Quantity: {quantity}")
         
         for potion in quantity:
