@@ -32,7 +32,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         ml = {row.rgbd: row.ml for row in ml_table}
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
 
-        query = f"""
+        query = """
                 UPDATE barrels
                 SET ml = CASE
                 """
@@ -78,6 +78,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         for purchase in wholesale_catalog:
             barrel_type = str(purchase.potion_type)
             if barrels[barrel_type] <= 100 and gold > purchase.price:
+                gold -= purchase.price
                 barrel_plan.append({
                     "sku": purchase.sku,
                     "quantity": 1
