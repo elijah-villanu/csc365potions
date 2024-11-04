@@ -16,7 +16,7 @@ def get_catalog():
     with db.engine.begin() as connection:
         potions = connection.execute(sqlalchemy.text("SELECT * FROM POTIONS")).fetchall()
         for row in potions:
-            type = [row[5],row[6],row[7],row[8]]
+            type = [row[9]]
             catalog.append({
                 "sku": row[1],
                 "name": row[2],

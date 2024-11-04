@@ -35,11 +35,15 @@ def reset():
     gold_query ="""
             INSERT INTO global_inventory (gold,id) VALUES (100,1)
             """
+    cart_query ="""
+                INSERT INTO carts (id) VALUES (0)
+                """
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text(truncate_query))
         connection.execute(sqlalchemy.text(ml_query))
         connection.execute(sqlalchemy.text(potion_query))
         connection.execute(sqlalchemy.text(gold_query))
+        connection.execute(sqlalchemy.text(cart_query))
         
         
     
