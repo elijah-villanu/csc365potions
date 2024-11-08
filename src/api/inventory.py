@@ -18,9 +18,11 @@ def get_inventory():
     potions, ml, and gold. 
     """
     with db.engine.begin() as connection:
-        stock_total = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potions")).scalar()
-        ml_total = connection.execute(sqlalchemy.text("SELECT SUM(ml) FROM barrels")).scalar()
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
+        stock_total = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_ledger")).scalar()
+        ml_total = connection.execute(sqlalchemy.text("SELECT SUM(ml) FROM barrel_ledger")).scalar()
+        profit = connection.execute(sqlalchemy.text("SELECT SUM(profit) FROM potion_ledger")).scalar()
+        cost = connection.execute(sqlalchemy.text("SELECT SUM(cost) FROM barrel_ledger")).scalar()
+        gold = profit - cost
     print(f"number_of_potions: {stock_total} ml_in_barrels: {ml_total}, gold: {gold}")
         
     return {"number_of_potions": stock_total, "ml_in_barrels": ml_total, "gold": gold}
