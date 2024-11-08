@@ -81,7 +81,16 @@ def post_visits(visit_id: int, customers: list[Customer]):
     """
     Which customers visited the shop today?
     """
-    print(customers)
+
+    # with db.engine.begin() as conn:
+    #     for customer 
+    #     conn.execute(sqlalchemy.text("""
+    #                                 INSERT INTO visitors 
+    #                                 (id, name, class, level)
+    #                                 VALUES (:id, :name, :class, :level)
+    #                                 """), {"id":new_id
+    #                                        "name":})
+    # print(customers)
 
     return "OK"
 
@@ -92,7 +101,15 @@ def create_cart(new_cart: Customer):
     # Insert new row each cart id and append by one for the id (sequential id)
     with db.engine.begin() as connection:
         new_id = connection.execute(sqlalchemy.text("SELECT MAX(id) FROM carts")).scalar() + 1
-        connection.execute(sqlalchemy.text(f"INSERT INTO carts (id, name, class) values ({new_id},  '{new_cart.customer_name}', '{new_cart.character_class}')"))
+        new_cart_query = """
+                            INSERT INTO carts
+                                (id, name, class)
+                            VALUES
+                                (:new_id, :name, :class)
+                         """
+        connection.execute(sqlalchemy.text(new_cart_query), {"new_id": new_id,
+                                                             "name": new_cart.customer_name,
+                                                             "class": new_cart.character_class})
     return {"cart_id": new_id} 
 
 
@@ -106,12 +123,41 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     quantity = cart_item.quantity
 
     with db.engine.begin() as connection:
-        price = connection.execute(sqlalchemy.text(f"SELECT price FROM potions WHERE potion_sku = '{item_sku}'")).scalar()
 
+        price_query = """
+                        SELECT price
+                            FROM potions
+                        WHERE potion_sku = :item_sku
+                      """
+        cart_item_query =   """
+                                INSERT INTO cart_items
+                                    (cart_id, item_sku, quantity, price)
+                                VALUES
+                                    (:cart_id, :item_sku, :quantity, :total) 
+                            """
+        price = connection.execute(sqlalchemy.text(price_query),{"item_sku": item_sku}).scalar()
         total = price * quantity
-        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, item_sku, quantity, price) VALUES ({cart_id},'{item_sku}','{quantity}','{total}')"))
-
+        connection.execute(sqlalchemy.text(cart_item_query), {"cart_id":cart_id,
+                                                              "item_sku":item_sku, 
+                                                              "quantity":quantity,
+                                                              "total":total})
+        
         # MERGE WITH POTIONS VIA POTION_SKU TABLE TO MULT QUANT AND PRICE FOR TOTAL THEN IN CHECKOUT SUM PRICES
+
+
+    # quantity = cart_item.quantity
+
+    # with db.engine.begin() as connection:
+    #     price = connection.execute(sqlalchemy.text("SELECT price FROM potions WHERE potion_sku = :item_sku"),
+    #                                {"item_sku":item_sku}).scalar()
+
+    #     total = price * quantity
+    #     cart_item_query = """INSERT INTO cart_items (cart_id, item_sku, quantity, price) 
+    #                       VALUES (:cart_id, :item_sku, :quantity, :total)"""
+        
+    #     connection.execute(sqlalchemy.text(cart_item_query),{"cart_id":cart_id,"item_sku":item_sku, "quantity":quantity,"total":total})
+
+    #     # MERGE WITH POTIONS VIA POTION_SKU TABLE TO MULT QUANT AND PRICE FOR TOTAL THEN IN CHECKOUT SUM PRICES
         
     return "OK"
 
@@ -122,15 +168,41 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
+    # Ledgerize purchase: rgbd, profit, (-)quantity, cart_id !!! Do in checkout    
     with db.engine.begin() as connection:
         # using cart_id grab their row and look through each column to decide what to buy
-        quantity = connection.execute(sqlalchemy.text(f"SELECT SUM(quantity) FROM cart_items WHERE cart_id = '{cart_id}'")).scalar()
-        total_cost = connection.execute(sqlalchemy.text(f"SELECT SUM(price) FROM cart_items WHERE cart_id = '{cart_id}'")).scalar()
-        connection.execute(sqlalchemy.text(f"UPDATE cart_items SET customer_payment = '{cart_checkout.payment}' WHERE cart_id = {cart_id}"))
-        
+
+        cart_items_query = """
+                            SELECT rgbd, price, quantity, cart_id, item_sku
+                            FROM cart_items
+                           """
+        cart_items_table = connection.execute(sqlalchemy.text(cart_items_query))
+
+        add_ledger = []
+        for item in cart_items_table:
+            sold_quantity = -item.quantity
+            add_ledger.append({
+                "rgbd": item.rgbd,
+                "price": item.price,
+                "quantity": sold_quantity,
+                "cart_id": item.cart_id,
+                "item_sku": item.item_sku
+            })
+        ledger_query =  """
+                            INSERT INTO potion_ledger
+                                (rgbd, price, quantity, cart_id, item_sku)
+                            VALUES (:rgbd, :price, :quantity, :cart_id, :item_sku)
+                        """
+        # Update Ledger
+        connection.execute(sqlalchemy.text(ledger_query), add_ledger)
+        qp_query =    """
+                                SELECT SUM (quantity), SUM (price) 
+                                FROM cart_items
+                                WHERE cart_id = :cart_id
+                            """ 
+        qp_table = connection.execute(sqlalchemy.text(qp_query), {"cart_id": cart_id}).fetchone()
+        quantity = qp_table[0]
+        cost = qp_table[1]
 
         
-        
-        # Need to do all updates with parameter binding
-    return {"total_potions_bought": quantity, "total_gold_paid": total_cost}
-
+    return {"total_potions_bought": quantity, "total_gold_paid": cost}

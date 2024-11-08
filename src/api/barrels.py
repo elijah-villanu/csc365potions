@@ -23,40 +23,38 @@ class Barrel(BaseModel):
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     """ 
     Runs after the wholesale_plan is run and made, adds ml and subtracts gold from plan
-    SHOULD HAVE SQL UPDATE
     """
 
+    # LEDGERIZE THIS 
     with db.engine.begin() as connection:
-        
-        ml_table = connection.execute(sqlalchemy.text("SELECT rgbd, ml FROM barrels"))
-        ml = {row.rgbd: row.ml for row in ml_table}
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
+        ledger_id = connection.execute(sqlalchemy.text("SELECT max(id) FROM barrel_ledger")).scalar()
+      
+        barrel_add = []
 
-        query = """
-                UPDATE barrels
-                SET ml = CASE
-                """
-        query_updated = False
-
-        #run through barrel plan and identify by potion type
         for purchased in barrels_delivered:
             ml_bought = purchased.ml_per_barrel
+            price = purchased.price
+            rgbd = str(purchased.potion_type)
+            barrel_sku = purchased.sku
+            cost = -purchased.price
             if ml_bought > 0:
-                cost = purchased.price
-                type = str(purchased.potion_type)
-                ml[type] += ml_bought
-                gold -= cost
-            
-                barrel_query = f"WHEN rgbd = '{type}' THEN {ml[type]} \n"
-                query += barrel_query
-                query_updated = True
+                ledger_id += 1
+                barrel_add.append({
+                    "id" : ledger_id,
+                    "rgbd" : rgbd,
+                    "cost" : cost,
+                    "ml" : ml_bought,
+                    "sku" : barrel_sku
+                })
 
-
-        #SQL UPDATE NEW VALUES (Only Runs if barrels were actually bought)
-        query += "END"    
-        if query_updated:    
-            connection.execute(sqlalchemy.text(query))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = '{gold}'"))
+        query = """
+                INSERT INTO barrel_ledger
+                    (id, rgbd, cost, ml, sku)
+                VALUES
+                    (:id, :rgbd, :cost, :ml, :sku)
+                """
+        # Runs as bulk update
+        connection.execute(sqlalchemy.text(query), barrel_add)
         
     print(f"barrels delievered: {barrels_delivered} order_id: {order_id}")
 
@@ -66,24 +64,57 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
+    #ONLY LOOK AT ML, NOT POT QUANT
     print(wholesale_catalog)
     
     barrel_plan = []
 
+    #LEDGERIZE THIS
     with db.engine.begin() as conn:
-        barrel_table = conn.execute(sqlalchemy.text("SELECT * FROM barrels"))
-        gold = conn.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        barrels = {row.rgbd:row.ml for row in barrel_table}
+        barrel_query =  """
+                        SELECT 
+                            SUM(red_ml) AS red,
+                            SUM(green_ml) AS green,
+                            SUM(blue_ml) AS blue,
+                            SUM(dark_ml) AS dark,
+                            rgbd
+                        FROM barrel_ledger
+                        GROUP BY rgbd
+                        """
+        barrel_table = conn.execute(sqlalchemy.text(barrel_query))
+
+        gold_query =    """
+                            SELECT
+                                SUM(profit) AS gold
+                            FROM potion_ledger 
+                        """
+        gold = conn.execute(sqlalchemy.text(gold_query)).scalar()
+
+        barrels = {}
+        for row in barrel_table:
+            rgbd = str(row.rgbd)
+            ml = 0
+            if row.red != 0:
+                ml = row.red
+            if row.green != 0:
+                ml = row.green
+            if row.blue != 0:
+                ml = row.blue
+            if row.dark != 0:
+                ml = row.dark
+            barrels[rgbd] = int(ml)
+
+        print(barrels)
 
         for purchase in wholesale_catalog:
-            barrel_type = str(purchase.potion_type)
-            if barrels[barrel_type] <= 100 and gold > purchase.price:
-                gold -= purchase.price
+            type = str(purchase.potion_type)
+            if barrels[type] <= 100 and gold > purchase.price:
+                gold -=purchase.price
                 barrel_plan.append({
                     "sku": purchase.sku,
                     "quantity": 1
                 })
         print(barrel_plan)
-        return barrel_plan            
+        return barrel_plan        
     
 
