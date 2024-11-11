@@ -24,43 +24,58 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     """
     Runs after bottler plan and uses list of PotionInventory made by the bottler plan
     """
+
     pot_ledger_query =  """
                                 INSERT INTO potion_ledger
-                                    (rgbd, 
-                                    quantity, 
-                                    item_sku)
+                                    (rgbd, quantity, item_sku)
                                 VALUES 
-                                    (:rgbd,
-                                    :quantity,
-                                    :item_sku) 
+                                    (:rgbd, :quantity, :item_sku) 
                         """
     potion_types_query =    """
-                                SELECT rgbd,
-                                    potion_sku
+                                SELECT rgbd, potion_sku, red_ml, green_ml, blue_ml, dark_ml
                                 FROM potions  
                             """
     potions_added = []
-    
-    # ledgerize bottler: rgbd, (+)quantity, item_sku (no cart_id/cart_item_id means its added)
-    # Ledgerize purchase: rgbd, profit, (-)quantity, cart_id, cart_item_id !!! Do in checkout
-    # Update barrels ledger with negative values to subtract
+
+    barrel_ledger_query =   """
+                                INSERT INTO barrel_ledger
+                                    (red_ml, green_ml, blue_ml, dark_ml, sku)
+                                VALUES
+                                    (:red_ml, :green_ml, :blue_ml, :dark_ml, :sku)
+                            """
+    ml_removed = []
 
     with db.engine.begin() as connection:
         
         potion_types_table = connection.execute(sqlalchemy.text(potion_types_query))
-        potion_types = {row.rgbd: row.potion_sku for row in potion_types_table}
+        potion_types = {}
+        potion_ml = {}
+        for row in potion_types_table:
+            potion_ml[row.potion_sku] = [row.red_ml, row.green_ml, row.blue_ml, row.dark_ml]
+            potion_types[row.rgbd] = row.potion_sku
+        
 
         for potion in potions_delivered:
-            type_string = str(potion.potion_type)
-            sku = potion_types[type_string]
+            rgbd = str(potion.potion_type)
+            sku = potion_types[rgbd]
             potions_added.append({
-                "rgbd": type_string,
+                "rgbd": rgbd,
                 "quantity": potion.quantity,
                 "item_sku": sku
             })
 
+            #potion_ml[] entry formatted as [r,g,b,d], so 0 = red etc.
+            ml_removed.append({
+                "red_ml": -potion_ml[sku][0],
+                "green_ml": -potion_ml[sku][1],
+                "blue_ml": -potion_ml[sku][2],
+                "dark_ml": -potion_ml[sku][3],
+                "sku": sku
+            })
+
         # bulk insert potion_ledger
         connection.execute(sqlalchemy.text(pot_ledger_query),potions_added)
+        connection.execute(sqlalchemy.text(barrel_ledger_query), ml_removed)
     print(f"potions delievered: {potions_delivered} order_id: {order_id}")
     return "OK"
 
@@ -76,59 +91,47 @@ def get_bottle_plan():
     bottle_plan = []
     with db.engine.begin() as connection:
         potion_query = """
-                        SELECT name, rgbd, red_ml, green_ml, blue_ml
+                        SELECT name, rgbd, red_ml, green_ml, blue_ml, dark_ml
                         FROM potions
                        """
         potions_table = connection.execute(sqlalchemy.text(potion_query))
         
         barrel_query = """
-                    SELECT rgbd, 
-                        SUM(ml) AS ml
+                    SELECT SUM(red_ml) AS red_ml,
+                        SUM(green_ml) AS green_ml,
+                        SUM(blue_ml) AS blue_ml,
+                        SUM(dark_ml) AS dark_ml
                     FROM barrel_ledger
-                    GROUP BY rgbd
                  """
-        ml_table = connection.execute(sqlalchemy.text(barrel_query))
-        ml = {row.rgbd: row.ml for row in ml_table}
-
+        ml_table = connection.execute(sqlalchemy.text(barrel_query)).fetchone()
+        
+        ml = {
+            "red_ml": ml_table[0],
+            "green_ml": ml_table[1],
+            "blue_ml": ml_table[2],
+            "dark_ml": ml_table[3]
+        }
 
         for potion in potions_table:
             if(
-                potion.red_ml <= ml["[1, 0, 0, 0]"]
-                and potion.blue_ml <= ml["[0, 1, 0, 0]"]
-                and potion.green_ml <= ml["[0, 0, 1, 0]"]
-                and potion.dark_ml <= ml["[0, 0, 0, 1]"]
+                potion.red_ml <= ml["red_ml"]
+                and potion.blue_ml <= ml["blue_ml"]
+                and potion.green_ml <= ml["green_ml"]
+                and potion.dark_ml <= ml["dark_ml"]
             ):
                 # TRY QUANTITY = AND DIV BY NEEDED MODULUS DIV
                 bottle_plan.append({
                     "potion_type": [potion.red_ml,potion.blue_ml,potion.green_ml,potion.dark_ml],
                     "quantity": 1
                 })
+                ml["red_ml"] -= potion.red_ml
+                ml["blue_ml"] -= potion.blue_ml
+                ml["green_ml"] -= potion.green_ml
+                ml["dark_ml"] -= potion.dark_ml
+                
 
     print(f"Bottle plan:{bottle_plan}")
     return bottle_plan             
-
-    # with db.engine.begin() as connection:
-
-    #     bottle_plan = []
-    #     potion_query = """
-    #                     SELECT name, quantity,red_ml,blue_ml, green_ml, dark_ml
-    #                     FROM potions
-    #                    """
-    #     potions_table = connection.execute(sqlalchemy.text(potion_query))
-        
-    #     ml_table = connection.execute(sqlalchemy.text("SELECT type, ml FROM barrels"))
-    #     ml = {row.type: row.ml for row in ml_table}
-
-    #     for potion in potions_table:
-    #         if potion.red_ml <= ml["red"] and potion.blue_ml <= ml["blue"] and potion.green_ml <= ml["green"] and potion.dark_ml <= ml["dark"]:
-    #             bottle_plan.append({
-    #                 "potion_type": [potion.red_ml,potion.blue_ml,potion.green_ml,potion.dark_ml],
-    #                 "quantity": 1
-    #             })
-
-
-    # print(f"Bottle plan:{bottle_plan}")
-    # return bottle_plan             
 
 if __name__ == "__main__":
     print(get_bottle_plan())
