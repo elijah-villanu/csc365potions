@@ -18,11 +18,32 @@ def get_inventory():
     potions, ml, and gold. 
     """
     with db.engine.begin() as connection:
-        stock_total = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_ledger")).scalar()
-        ml_total = connection.execute(sqlalchemy.text("SELECT SUM(ml) FROM barrel_ledger")).scalar()
-        profit = connection.execute(sqlalchemy.text("SELECT SUM(profit) FROM potion_ledger")).scalar()
-        cost = connection.execute(sqlalchemy.text("SELECT SUM(cost) FROM barrel_ledger")).scalar()
-        gold = profit - cost
+        ml_query = """
+                    SELECT SUM(red_ml) AS red_ml, SUM(blue_ml) AS blue_ml, 
+                        SUM(green_ml) AS green_ml, SUM(dark_ml) AS dark_ml,
+                        SUM(cost) AS cost
+                    FROM barrel_ledger
+                   """
+        ml_values = connection.execute(sqlalchemy.text(ml_query))
+        ml_total = 0
+        cost = 0
+        for row in ml_values:
+            ml_total += row.red_ml + row.blue_ml + row.green_ml + row.dark_ml
+            cost += row.cost
+
+        potion_query = """
+                        SELECT SUM(quantity) AS quantity, SUM(price) AS profit
+                        FROM potion_ledger
+                       """
+        stock_values = connection.execute(sqlalchemy.text(potion_query))
+        stock_total = 0
+        profit = 0
+        for row in stock_values:
+            stock_total += row.quantity
+            profit += row.profit
+        
+        # Cost is already negative on tables
+        gold = profit + cost
     print(f"number_of_potions: {stock_total} ml_in_barrels: {ml_total}, gold: {gold}")
         
     return {"number_of_potions": stock_total, "ml_in_barrels": ml_total, "gold": gold}
