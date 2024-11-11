@@ -27,31 +27,46 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
     # LEDGERIZE THIS 
     with db.engine.begin() as connection:
-        ledger_id = connection.execute(sqlalchemy.text("SELECT max(id) FROM barrel_ledger")).scalar()
       
         barrel_add = []
-
+        types = {
+            '[1, 0, 0, 0]':"red_ml",
+            '[0, 1, 0, 0]' : "green_ml",
+            '[0, 0, 1, 0]' : "blue_ml",
+            '[0, 0, 0, 1]' : "dark_ml"
+        }
+        
         for purchased in barrels_delivered:
-            ml_bought = purchased.ml_per_barrel
-            price = purchased.price
+            ml_in_barrel = {
+            'red_ml': 0,
+            'green_ml': 0,
+            'blue_ml': 0,
+            'dark_ml': 0
+            }
+
             rgbd = str(purchased.potion_type)
+            barrel_type = types[rgbd]
+
+            #adds either red, green, blue or dark
+            ml_in_barrel[barrel_type] += purchased.ml_per_barrel
             barrel_sku = purchased.sku
             cost = -purchased.price
-            if ml_bought > 0:
-                ledger_id += 1
-                barrel_add.append({
-                    "id" : ledger_id,
-                    "rgbd" : rgbd,
-                    "cost" : cost,
-                    "ml" : ml_bought,
-                    "sku" : barrel_sku
+                
+            barrel_add.append({
+                "rgbd" : rgbd,
+                "cost" : cost,
+                "sku" : barrel_sku,
+                "red_ml": ml_in_barrel["red_ml"],
+                "green_ml": ml_in_barrel["green_ml"],
+                "blue_ml": ml_in_barrel["blue_ml"],
+                "dark_ml": ml_in_barrel["dark_ml"]
                 })
 
         query = """
                 INSERT INTO barrel_ledger
-                    (id, rgbd, cost, ml, sku)
+                    (rgbd, cost, sku, red_ml, green_ml, blue_ml, dark_ml)
                 VALUES
-                    (:id, :rgbd, :cost, :ml, :sku)
+                    (:rgbd, :cost, :sku, :red_ml, :green_ml, :blue_ml, :dark_ml)
                 """
         # Runs as bulk update
         connection.execute(sqlalchemy.text(query), barrel_add)
@@ -88,7 +103,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                                 SUM(profit) AS gold
                             FROM potion_ledger 
                         """
-        gold = conn.execute(sqlalchemy.text(gold_query)).scalar()
+        profit = conn.execute(sqlalchemy.text(gold_query)).scalar()
+        cost = conn.execute(sqlalchemy.text("SELECT SUM(cost) FROM barrel_ledger")).scalar()
+        gold = profit - cost
 
         barrels = {}
         for row in barrel_table:
@@ -108,8 +125,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
         for purchase in wholesale_catalog:
             type = str(purchase.potion_type)
-            if barrels[type] <= 100 and gold > purchase.price:
+            if barrels[type] <= 100 and barrels[type] <= 500 and gold > purchase.price:
                 gold -=purchase.price
+                barrels[type] += purchase.ml_per_barrel
                 barrel_plan.append({
                     "sku": purchase.sku,
                     "quantity": 1
