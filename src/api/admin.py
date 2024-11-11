@@ -33,7 +33,7 @@ def reset():
                 """
     barrel_query = """
                     DELETE FROM barrel_ledger
-                    WHERE sku != init
+                    WHERE sku != 'init'
                     """
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text(truncate_query))
