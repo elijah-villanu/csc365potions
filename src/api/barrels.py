@@ -99,7 +99,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
         gold_query =    """
                             SELECT
-                                SUM(profit) AS gold
+                                SUM(price) AS gold
                             FROM potion_ledger 
                         """
         profit = conn.execute(sqlalchemy.text(gold_query)).scalar()
