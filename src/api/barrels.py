@@ -25,7 +25,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     Runs after the wholesale_plan is run and made, adds ml and subtracts gold from plan
     """
 
-    # LEDGERIZE THIS 
+    
     with db.engine.begin() as connection:
       
         barrel_add = []
@@ -79,12 +79,11 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
-    #ONLY LOOK AT ML, NOT POT QUANT
     print(wholesale_catalog)
     
     barrel_plan = []
 
-    #LEDGERIZE THIS
+    
     with db.engine.begin() as conn:
         barrel_query =  """
                         SELECT 

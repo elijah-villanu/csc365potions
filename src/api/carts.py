@@ -131,7 +131,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                       """
         cart_item_query =   """
                                 INSERT INTO cart_items
-                                    (cart_id, item_sku, quantity, price)
+                                    (cart_id, item_sku, quantity, total)
                                 VALUES
                                     (:cart_id, :item_sku, :quantity, :total) 
                             """
@@ -141,24 +141,6 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                                                               "item_sku":item_sku, 
                                                               "quantity":quantity,
                                                               "total":total})
-        
-        # MERGE WITH POTIONS VIA POTION_SKU TABLE TO MULT QUANT AND PRICE FOR TOTAL THEN IN CHECKOUT SUM PRICES
-
-
-    # quantity = cart_item.quantity
-
-    # with db.engine.begin() as connection:
-    #     price = connection.execute(sqlalchemy.text("SELECT price FROM potions WHERE potion_sku = :item_sku"),
-    #                                {"item_sku":item_sku}).scalar()
-
-    #     total = price * quantity
-    #     cart_item_query = """INSERT INTO cart_items (cart_id, item_sku, quantity, price) 
-    #                       VALUES (:cart_id, :item_sku, :quantity, :total)"""
-        
-    #     connection.execute(sqlalchemy.text(cart_item_query),{"cart_id":cart_id,"item_sku":item_sku, "quantity":quantity,"total":total})
-
-    #     # MERGE WITH POTIONS VIA POTION_SKU TABLE TO MULT QUANT AND PRICE FOR TOTAL THEN IN CHECKOUT SUM PRICES
-        
     return "OK"
 
 
@@ -173,36 +155,37 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         # using cart_id grab their row and look through each column to decide what to buy
 
         cart_items_query = """
-                            SELECT rgbd, price, quantity, cart_id, item_sku
-                            FROM cart_items
+                            SELECT ci.item_sku, ci.quantity, ci.total,
+                                p.rgbd, ci.cart_id
+                            FROM cart_items AS ci
+                            LEFT JOIN potions AS p ON p.potion_sku = ci.item_sku
+                            WHERE cart_id = :cart_id
                            """
-        cart_items_table = connection.execute(sqlalchemy.text(cart_items_query))
+        cart_items_table = connection.execute(sqlalchemy.text(cart_items_query),{"cart_id": cart_id})
 
         add_ledger = []
+
+        total_quant = 0
+        total_cost = 0
         for item in cart_items_table:
             sold_quantity = -item.quantity
+            total_quant += item.quantity
+            total_cost += item.total
             add_ledger.append({
                 "rgbd": item.rgbd,
-                "price": item.price,
+                "price": item.total,
                 "quantity": sold_quantity,
                 "cart_id": item.cart_id,
                 "item_sku": item.item_sku
             })
+            
+        # Update potion ledger
         ledger_query =  """
                             INSERT INTO potion_ledger
                                 (rgbd, price, quantity, cart_id, item_sku)
                             VALUES (:rgbd, :price, :quantity, :cart_id, :item_sku)
                         """
-        # Update Ledger
         connection.execute(sqlalchemy.text(ledger_query), add_ledger)
-        qp_query =    """
-                                SELECT SUM (quantity), SUM (price) 
-                                FROM cart_items
-                                WHERE cart_id = :cart_id
-                            """ 
-        qp_table = connection.execute(sqlalchemy.text(qp_query), {"cart_id": cart_id}).fetchone()
-        quantity = qp_table[0]
-        cost = qp_table[1]
 
         
-    return {"total_potions_bought": quantity, "total_gold_paid": cost}
+    return {"total_potions_bought": total_quant, "total_gold_paid": total_cost}
