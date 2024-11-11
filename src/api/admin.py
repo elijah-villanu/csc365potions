@@ -20,7 +20,6 @@ def reset():
             TRUNCATE TABLE
             cart_items,
             visitors,
-            barrel_ledger
                 """
     cart_query ="""
                 DELETE FROM carts
@@ -32,10 +31,15 @@ def reset():
                 DELETE FROM potion_ledger
                 WHERE id != 0 
                 """
+    barrel_query = """
+                    DELETE FROM barrel_ledger
+                    WHERE sku != init
+                    """
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text(truncate_query))
         connection.execute(sqlalchemy.text(cart_query))
         connection.execute(sqlalchemy.text(gold_query))
+        connection.execute(sqlalchemy.text(barrel_query))
         
         
     
