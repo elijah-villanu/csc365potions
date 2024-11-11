@@ -19,7 +19,7 @@ def reset():
     truncate_query = """
             TRUNCATE TABLE
             cart_items,
-            visitors,
+            visitors
                 """
     cart_query ="""
                 DELETE FROM carts
