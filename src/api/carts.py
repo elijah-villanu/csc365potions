@@ -57,7 +57,7 @@ def search_orders(
     sort_order: search_sort_order = search_sort_order.desc, #column for timestamp
 ):
     all_customers_query =   """
-                            SELECT DISTINCT ci.cart_id, c.name AS customer, p.name, pl.price, pl.checkout_time AS time
+                            SELECT DISTINCT ci.cart_id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
                             FROM potion_ledger AS pl
                             JOIN potions AS p ON p.potion_sku = pl.item_sku
                             JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
