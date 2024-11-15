@@ -22,16 +22,7 @@ class search_sort_options(str, Enum):
 class search_sort_order(str, Enum):
     asc = "asc"
     desc = "desc"   
-
-@router.get("/search/", tags=["search"])
-def search_orders(
-    customer_name: str = "",
-    potion_sku: str = "",
-    search_page: str = "",
-    sort_col: search_sort_options = search_sort_options.timestamp,
-    sort_order: search_sort_order = search_sort_order.desc,
-):
-    """
+"""
     Search for cart line items by customer name and/or potion sku.
 
     Customer name and potion sku filter to orders that contain the 
@@ -56,19 +47,53 @@ def search_orders(
     time is 5 total line items.
     """
 
+
+@router.get("/search/", tags=["search"])
+def search_orders(
+    customer_name: str = "",
+    potion_sku: str = "",
+    search_page: str = "",
+    sort_col: search_sort_options = search_sort_options.timestamp,
+    sort_order: search_sort_order = search_sort_order.desc, #column for timestamp
+):
+    all_customers_query =   """
+                            SELECT DISTINCT ci.cart_id, c.name AS customer, p.name, pl.price, pl.checkout_time AS time
+                            FROM potion_ledger AS pl
+                            JOIN potions AS p ON p.potion_sku = pl.item_sku
+                            JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
+                            JOIN carts AS c ON c.id = ci.cart_id
+                            WHERE pl.is_checkout = true
+                            GROUP BY ci.cart_id, c.name, p.name, pl.price, pl.checkout_time
+                            """
+    customer_search = []
+    with db.engine.begin() as conn:
+        all_customers = conn.execute(sqlalchemy.text(all_customers_query))
+    
+    for customer in all_customers:
+        customer_search.append({
+            "line_item_id": customer.cart_id,
+            "item_sku": customer.potion,
+            "customer_name": customer.customer,
+            "line_item_total": customer.price,
+            "timestamp": customer.checkout_time
+        })
+
+    
     return {
         "previous": "",
         "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
-            }
-        ],
+        "results": customer_search
+        
     }
+    # "results": [
+        #     {
+        #         "line_item_id": 1,
+        #         "item_sku": "1 oblivion potion",
+        #         "customer_name": "Scaramouche",
+        #         "line_item_total": 50,
+        #         "timestamp": "2021-01-01T00:00:00Z",
+        #     }
+        # ],
 
 
 class Customer(BaseModel):
@@ -176,14 +201,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 "price": item.total,
                 "quantity": sold_quantity,
                 "cart_id": item.cart_id,
-                "item_sku": item.item_sku
+                "item_sku": item.item_sku,
+                "checkout": True
             })
             
         # Update potion ledger
         ledger_query =  """
                             INSERT INTO potion_ledger
-                                (rgbd, price, quantity, cart_id, item_sku)
-                            VALUES (:rgbd, :price, :quantity, :cart_id, :item_sku)
+                                (rgbd, price, quantity, cart_id, item_sku, is_checkout)
+                            VALUES (:rgbd, :price, :quantity, :cart_id, :item_sku, :checkout)
                         """
         connection.execute(sqlalchemy.text(ledger_query), add_ledger)
 
