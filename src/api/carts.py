@@ -56,6 +56,7 @@ def search_orders(
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc, #column for timestamp
 ):
+    
     all_customers_query =   """
                             SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
                             FROM potion_ledger AS pl
@@ -64,10 +65,56 @@ def search_orders(
                             JOIN carts AS c ON c.id = ci.cart_id
                             WHERE pl.is_checkout = true
                             GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
-                            """
+                       """
+    cust_only_query =  """
+                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            FROM potion_ledger AS pl
+                            JOIN potions AS p ON p.potion_sku = pl.item_sku
+                            JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
+                            JOIN carts AS c ON c.id = ci.cart_id
+                            WHERE pl.is_checkout = true
+                                AND c.name ILIKE :customer_name
+                            GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
+                        """
+    pot_only_query = """
+                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            FROM potion_ledger AS pl
+                            JOIN potions AS p ON p.potion_sku = pl.item_sku
+                            JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
+                            JOIN carts AS c ON c.id = ci.cart_id
+                            WHERE pl.is_checkout = true
+                                AND p.name ILIKE :potion_sku
+                            GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
+                     """
+    both_query = """
+                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            FROM potion_ledger AS pl
+                            JOIN potions AS p ON p.potion_sku = pl.item_sku
+                            JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
+                            JOIN carts AS c ON c.id = ci.cart_id
+                            WHERE pl.is_checkout = true
+                                AND c.name ILIKE :customer_name
+                                AND p.name ILIKE :potion_sku
+                            GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
+                     """
     customer_search = []
+    all_customers = []
     with db.engine.begin() as conn:
-        all_customers = conn.execute(sqlalchemy.text(all_customers_query))
+        # Full search
+        if customer_name == "" and potion_sku == "":
+            all_customers = conn.execute(sqlalchemy.text(all_customers_query))
+        elif potion_sku =="":
+            customer_name += "%"
+            all_customers = conn.execute(sqlalchemy.text(cust_only_query),{"customer_name":customer_name})
+        elif customer_name =="":
+            potion_sku += "%"
+            all_customers = conn.execute(sqlalchemy.text(pot_only_query),{"potion_sku":potion_sku})
+        else:
+            potion_sku += "%"
+            customer_name += "%"
+            all_customers = conn.execute(sqlalchemy.text(both_query),{"customer_name":customer_name,
+                                                                      "potion_sku":potion_sku})
+
     
     for customer in all_customers:
         customer_search.append({
@@ -85,16 +132,6 @@ def search_orders(
         "results": customer_search
         
     }
-    # "results": [
-        #     {
-        #         "line_item_id": 1,
-        #         "item_sku": "1 oblivion potion",
-        #         "customer_name": "Scaramouche",
-        #         "line_item_total": 50,
-        #         "timestamp": "2021-01-01T00:00:00Z",
-        #     }
-        # ],
-
 
 class Customer(BaseModel):
     customer_name: str
