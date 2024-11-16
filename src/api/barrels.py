@@ -104,7 +104,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                         """
         profit = conn.execute(sqlalchemy.text(gold_query)).scalar()
         cost = conn.execute(sqlalchemy.text("SELECT SUM(cost) FROM barrel_ledger")).scalar()
-        gold = profit - cost
+        gold = profit + cost
 
         barrels = {}
         for row in barrel_table:

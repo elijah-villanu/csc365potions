@@ -54,11 +54,12 @@ def search_orders(
     potion_sku: str = "",
     search_page: str = "",
     sort_col: search_sort_options = search_sort_options.timestamp,
-    sort_order: search_sort_order = search_sort_order.desc, #column for timestamp
+    sort_order: search_sort_order = search_sort_order.desc, #column for timestamp, defaults to desc
 ):
     
     all_customers_query =   """
-                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            SELECT DISTINCT ci.id, c.name AS customer_name, p.name AS item_sku, 
+                                pl.price AS  line_item_total, pl.checkout_time AS timestamp
                             FROM potion_ledger AS pl
                             JOIN potions AS p ON p.potion_sku = pl.item_sku
                             JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
@@ -67,7 +68,8 @@ def search_orders(
                             GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
                        """
     cust_only_query =  """
-                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            SELECT DISTINCT ci.id, c.name AS customer_name, p.name AS item_sku, 
+                                pl.price AS  line_item_total, pl.checkout_time AS timestamp
                             FROM potion_ledger AS pl
                             JOIN potions AS p ON p.potion_sku = pl.item_sku
                             JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
@@ -77,7 +79,8 @@ def search_orders(
                             GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
                         """
     pot_only_query = """
-                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            SELECT DISTINCT ci.id, c.name AS customer_name, p.name AS item_sku, 
+                                pl.price AS  line_item_total, pl.checkout_time AS timestamp
                             FROM potion_ledger AS pl
                             JOIN potions AS p ON p.potion_sku = pl.item_sku
                             JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
@@ -87,7 +90,8 @@ def search_orders(
                             GROUP BY ci.id, c.name, p.name, pl.price, pl.checkout_time
                      """
     both_query = """
-                            SELECT DISTINCT ci.id, c.name AS customer, p.name AS potion, pl.price, pl.checkout_time AS time
+                            SELECT DISTINCT ci.id, c.name AS customer_name, p.name AS item_sku, 
+                                pl.price AS  line_item_total, pl.checkout_time AS timestamp
                             FROM potion_ledger AS pl
                             JOIN potions AS p ON p.potion_sku = pl.item_sku
                             JOIN cart_items AS ci ON ci.item_sku = pl.item_sku
@@ -99,19 +103,25 @@ def search_orders(
                      """
     customer_search = []
     all_customers = []
+    sorting_clause = f"\nORDER BY {sort_col.value} {sort_order.value};"
+
     with db.engine.begin() as conn:
         # Full search
         if customer_name == "" and potion_sku == "":
+            all_customers_query += sorting_clause
             all_customers = conn.execute(sqlalchemy.text(all_customers_query))
         elif potion_sku =="":
             customer_name += "%"
+            cust_only_query += sorting_clause
             all_customers = conn.execute(sqlalchemy.text(cust_only_query),{"customer_name":customer_name})
         elif customer_name =="":
             potion_sku += "%"
+            pot_only_query += sorting_clause
             all_customers = conn.execute(sqlalchemy.text(pot_only_query),{"potion_sku":potion_sku})
         else:
             potion_sku += "%"
             customer_name += "%"
+            both_query += sorting_clause
             all_customers = conn.execute(sqlalchemy.text(both_query),{"customer_name":customer_name,
                                                                       "potion_sku":potion_sku})
 
@@ -119,10 +129,10 @@ def search_orders(
     for customer in all_customers:
         customer_search.append({
             "line_item_id": customer.id,
-            "item_sku": customer.potion,
-            "customer_name": customer.customer,
-            "line_item_total": customer.price,
-            "timestamp": customer.time
+            "item_sku": customer.item_sku,
+            "customer_name": customer.customer_name,
+            "line_item_total": customer.line_item_total,
+            "timestamp": customer.timestamp
         })
 
     
@@ -132,6 +142,7 @@ def search_orders(
         "results": customer_search
         
     }
+
 
 class Customer(BaseModel):
     customer_name: str
