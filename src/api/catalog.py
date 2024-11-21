@@ -25,13 +25,14 @@ def get_catalog():
         potions = connection.execute(sqlalchemy.text(potions_query))
         
         for row in potions:
-            rbgd_array = [row.red_ml, row.green_ml, row.blue_ml, row.dark_ml]
-            catalog.append({
-                "sku": row.potion_sku,
-                "name": row.name,
-                "quantity": row.quantity,
-                "price": row.price,
-                "potion_type": rbgd_array,
-            })
+            if row.quantity > 0:
+                rbgd_array = [row.red_ml, row.green_ml, row.blue_ml, row.dark_ml]
+                catalog.append({
+                    "sku": row.potion_sku,
+                    "name": row.name,
+                    "quantity": row.quantity,
+                    "price": row.price,
+                    "potion_type": rbgd_array,
+                })
 
     return catalog

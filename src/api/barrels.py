@@ -84,6 +84,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     barrel_plan = []
 
     
+    # DO CHECK CONSTRAINTSSS
+    # Implement visitors!!
     with db.engine.begin() as conn:
         barrel_query =  """
                         SELECT 
@@ -122,9 +124,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
         print(barrels)
 
+        check_constraint = 10000
         for purchase in wholesale_catalog:
             type = str(purchase.potion_type)
-            if barrels[type] <= 100 and barrels[type] <= 500 and gold > purchase.price:
+            if barrels[type] <= 100 and barrels[type]:
                 gold -=purchase.price
                 barrels[type] += purchase.ml_per_barrel
                 barrel_plan.append({
