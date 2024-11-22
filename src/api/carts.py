@@ -162,14 +162,13 @@ def post_visits(visit_id: int, customers: list[Customer]):
                         VALUES
                             (:visit_id, :name, :class, :level)
                         """ 
-        visitor_list = {}
+        visitor_list = []
         for visitor in customers:
             visitor_list.append({
                 "visit_id": visit_id,
                 "name": visitor.customer_name,
                 "class": visitor.character_class,
                 "level": visitor.level
-
             })
         conn.execute(sqlalchemy.text(visitor_query), visitor_list)
     print(customers)
