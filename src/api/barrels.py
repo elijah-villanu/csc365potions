@@ -127,13 +127,16 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         check_constraint = 10000
         for purchase in wholesale_catalog:
             type = str(purchase.potion_type)
-            if barrels[type] <= 100 and barrels[type] and gold > purchase.price:
-                gold -=purchase.price
-                barrels[type] += purchase.ml_per_barrel
-                barrel_plan.append({
-                    "sku": purchase.sku,
-                    "quantity": 1
-                })
+            if barrels[type] <= 500 and gold >= purchase.price:
+                    # This will either skip the MINI barrels but if desperately needed
+                    # will purchase MINI if less than 100 gold
+                    if purchase.ml_per_barrel >= 500 or gold < 100:
+                        gold -=purchase.price
+                        barrels[type] += purchase.ml_per_barrel
+                        barrel_plan.append({
+                            "sku": purchase.sku,
+                            "quantity": 1
+                        })
         print(barrel_plan)
         return barrel_plan        
     
