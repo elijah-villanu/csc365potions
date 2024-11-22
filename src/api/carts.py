@@ -155,15 +155,24 @@ def post_visits(visit_id: int, customers: list[Customer]):
     Which customers visited the shop today?
     """
 
-    # with db.engine.begin() as conn:
-    #     for customer 
-    #     conn.execute(sqlalchemy.text("""
-    #                                 INSERT INTO visitors 
-    #                                 (id, name, class, level)
-    #                                 VALUES (:id, :name, :class, :level)
-    #                                 """), {"id":new_id
-    #                                        "name":})
-    # print(customers)
+    with db.engine.begin() as conn:
+        visitor_query = """
+                        INSERT INTO visitors
+                            (visit_id, name, class, level)
+                        VALUES
+                            (:visit_id, :name, :class, :level)
+                        """ 
+        visitor_list = {}
+        for visitor in customers:
+            visitor_list.append({
+                "visit_id": visit_id,
+                "name": visitor.customer_name,
+                "class": visitor.character_class,
+                "level": visitor.level
+
+            })
+        conn.execute(sqlalchemy.text(visitor_query), visitor_list)
+    print(customers)
 
     return "OK"
 
